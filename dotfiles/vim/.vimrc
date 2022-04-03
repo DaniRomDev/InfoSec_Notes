@@ -1,6 +1,6 @@
 " GENERAL CONFIGURATION 
 set number
-set syntax
+syntax on
 set showmatch
 set fileformat=unix
 set encoding=utf-8

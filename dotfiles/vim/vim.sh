@@ -1,14 +1,13 @@
 #!/bin/bash
-source "../../Scripts/whichOperatingSystem.sh"
-source "../../Scripts/whichPackageManager.sh"
 
 set -o errexit 
 set -o nounset
 
-# 1 - Install VIM if not exist on the target OS 
-operating_system=$(whichOS)
+# $1 operating_system argument / $2 packager_manager argument
 
-if [[ "$operating_system" == "macOS" ]]; then
+# 1 - Install VIM if not exist on the target OS 
+
+if [[ "$1" == "macOS" ]]; then
     echo -e "Detected MacOS system...\n"
     command -v brew >/dev/null 2>&1 || {
 	echo >&2 "Not found Homebrew in your MacOs, Installing Homebrew Now"
@@ -20,12 +19,11 @@ if [[ "$operating_system" == "macOS" ]]; then
 	brew install vim coreutils
     }
 
-elif [[ "$operating_system" == 'linux' ]]; then
+elif [[ "$1" == 'linux' ]]; then
     echo -e "Detect Linux based system...\n"
-    package_manager=$(whichPM)
     
     command -v vim > /dev/nul 2>&1 || {
-       $SHELL -c "$package_manager build-essential vim"
+       $SHELL -c "$2 build-essential vim"
     } 
 else
     echo -e "Window system is not supported for this dotfiles configuration, aborting..."
@@ -39,6 +37,6 @@ readonly VIM_DIRECTORY=$HOME/.config/vim
 
 echo -e "Copying .vimrc file into $VIM_DIRECTORY ..."
 
-mkdir -p "$VIM_DIRECTORY" && cp -i $PWD/.vimrc $VIM_DIRECTORY/.vimrc && ln -sf $VIM_DIRECTORY/.vimrc $HOME/.vimrc && echo -e "Copied basic .vimrc file with success!"
+mkdir -p "$VIM_DIRECTORY" && cp -i $PWD/vim/.vimrc $VIM_DIRECTORY/.vimrc && ln -sf $VIM_DIRECTORY/.vimrc $HOME/.vimrc && echo -e "Copied .vimrc file into your system with success!"
 
 
