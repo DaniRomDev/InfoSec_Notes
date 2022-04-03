@@ -16,7 +16,7 @@ if [[ "$1" == "macOS" ]]; then
 
     command -v vim > /dev/null 2>&1 || {	
 	brew tap homebrew/cask-versions
-	brew install vim coreutils
+	brew install bash vim coreutils
     }
 
 elif [[ "$1" == 'linux' ]]; then
@@ -40,3 +40,17 @@ echo -e "Copying .vimrc file into $VIM_DIRECTORY ..."
 mkdir -p "$VIM_DIRECTORY" && cp -i $PWD/vim/.vimrc $VIM_DIRECTORY/.vimrc && ln -sf $VIM_DIRECTORY/.vimrc $HOME/.vimrc && echo -e "Copied .vimrc file into your system with success!"
 
 
+# Display prompt to give the user the option to select the plugin manager for vim
+
+read -p "Do you want to install the plugins for vim? (y/n)" yn
+
+case $yn in:
+    [yY] ) chmod u+x ./vim/vim_plugins.sh && $SHELL -c "./vim/vim_plugins.sh $1 $2"
+	break;
+    [nN] ) echo -e "You selected to not install plugins for vim editor :("
+	break;
+    * ) echo "Invalid response, select between 'y,Y ' or 'n,N'"
+esac
+
+
+# TMUX optional installation with plugins and theme by default
