@@ -16,15 +16,20 @@ if [[ "$1" == "macOS" ]]; then
 
     command -v vim > /dev/null 2>&1 || {	
 	brew tap homebrew/cask-versions
-	brew install bash vim coreutils
+	brew install vim
     }
+    
+    brew install curl bash coreutils git fzf ripgrep bat lsd
 
 elif [[ "$1" == 'linux' ]]; then
     echo -e "Detect Linux based system...\n"
     
+    $SHELL -c "$2 curl build-essential git cmake bat fzf ripgrep"
+    
     command -v vim > /dev/nul 2>&1 || {
-       $SHELL -c "$2 build-essential vim"
-    } 
+       $SHELL -c "$2 vim"
+    }
+
 else
     echo -e "Window system is not supported for this dotfiles configuration, aborting..."
     exit 1

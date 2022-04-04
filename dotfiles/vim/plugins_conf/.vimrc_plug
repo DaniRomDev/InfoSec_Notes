@@ -1,0 +1,32 @@
+set grepprg=rg\ --vimgrep\ --smart-case\ --follow
+
+" PLUGINS
+call plug#begin()
+
+Plug 'airblade/vim-gitgutter'
+Plug 'christoomey/vim-tmux-navigator'
+Plug 'easymotion/vim-easymotion'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+Plug 'scrooloose/nerdtree'
+Plug 'tpope/vim-fugitive'
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
+
+call plug#end()
+
+let NERDTreeQuitOnOpen=1
+
+let g:airline#extensions#tabline#enabled = 1
+let g:airline#extensions#tabline#formatter = 'unique_tail'
+let g:airline_powerline_fonts=1
+let g:fzf_layout = {'window': { 'width': 0.9, 'height': 0.6 } }
+let g:fzf_preview_window = 'right:50%'
+
+let mapleader=" "
+
+map  / <Plug>(easymotion-sn)
+omap / <Plug>(easymotion-tn)
+
+nmap <Leader>f :Files<CR>
+nmap <Leader>nt :NERDTreeFind<CR>
