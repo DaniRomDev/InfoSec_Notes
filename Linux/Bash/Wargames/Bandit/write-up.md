@@ -1,6 +1,5 @@
 # Wargames - Bandit
 Write up for the levels of [bandit wargame](https://overthewire.org/wargames/bandit) follow along with [this youtube tutorial from s4vitar](https://www.youtube.com/watch?v=RUorAzaDftg) 
-
 # Level 1
 The password for the next level is stored in a file called **-** located in the home directory
 
@@ -116,6 +115,139 @@ The password for the next level is stored in a file somewhere under the inhere d
         1033 bytes in size
 	    not executable
 
+	    Things get a little complicated here because if we list the directories and files on the path we're going to see a bunch of them so a manual approach is not feasible.
 
+	    At least we have critical information:
+	    - Human readable means that the type is ASCII text
+	    - We have the size of it (1033 bytes)
+	    - Is not executable so must not have the 'x' permission
+
+	    Let's translate this conditions into a bash command:
+	    ```bash
+# ! Operator command is to check for the opposite
+# We are looking for type file, not executable and size of 1033 bytes (we need to append c at the end to define that we want it on bytes)
+
+	    find ./inhere/ -type f ! -executable -size 1033c
+
+# Output will be 
+./inhere/maybehere07/.file2
+
+# Try to open with
+find ./inhere/ -type f ! -executable -size 1033c | xargs cat
+```
+If we try to open this file we encounter another problem, the content is full of spaces so we need to do some kind of transformation before pass the output to the cat command.
+
+The easy way is use xargs on the next pipe, this command by default will format the content so we can see now the password more readable:
+```bash
+find ./inhere/ -type f ! -executable -size 1033c | xargs cat | xargs
+```
+# Alternative with `tr` command
+```bash
+#  tr on the man page description stands for Translate, squeeze, and/or delete characters from standard input, writing to standard output.
+
+find ./inhere/ -type f ! -executable -size 1033c | xargs cat | tr -d ' ' 
+# -d option is for delete and we want to remove all the whitespaces
+```
+# Alternative with `sed` command
+```bash
+# sed <operator/<SEARCH>/<REPLACE>/<REGEX OPTION (g m i)>
+
+# operator = s (replacement operator)
+# SEARCH = \s (regex for whitespaces)
+# REPLACE = '' (transform whitespaces into nothing)
+# REGEX OPTION (g for global, this means transform all the matchs)
+find ./inhere/ -type f ! -executable -size 1033c | xargs sed 's/\s//g'
+```
+
+# Level 6
+The password for the next level is stored somewhere on the server and has all of the following properties:
+
+    owned by user bandit7
+        owned by group bandit6
+	    33 bytes in size
+
+	    The important information here is somewhere on the server so if you run `ls' command on your user directory you can see that we don't have nothing relevant on it.
+
+	    As before we have some conditions to apply on our find command to help us on this adventure:
+	    ```bash
+# We start looking for files on the root directory because we don't know where it's located
+	     find / -type f -user bandit7 -group bandit6 -size 33c
+# This come up with some noise
+	      find: ‘/root’: Permission denied
+	      find: ‘/home/bandit28-git’: Permission denied
+	      find: ‘/home/bandit30-git’: Permission denied
+	      find: ‘/home/bandit5/inhere’: Permission denied
+	      find: ‘/home/bandit27-git’: Permission denied
+	      find: ‘/home/bandit29-git’: Permission denied
+	      find: ‘/home/bandit31-git’: Permission denied
+	      find: ‘/lost+found’: Permission denied
+	      find: ‘/etc/ssl/private’: Permission denied
+	      find: ‘/etc/polkit-1/localauthority’: Permission denied
+	      find: ‘/etc/lvm/archive’: Permission denied
+	      find: ‘/etc/lvm/backup’: Permission denied
+	      find: ‘/sys/fs/pstore’: Permission denied
+	      find: ‘/proc/tty/driver’: Permission denied
+	      find: ‘/proc/28534/task/28534/fdinfo/6’: No such file or directory
+	      find: ‘/proc/28534/fdinfo/5’: No such file or directory
+	      find: ‘/cgroup2/csessions’: Permission denied
+	      find: ‘/boot/lost+found’: Permission denied
+	      find: ‘/tmp’: Permission denied
+	      find: ‘/run/lvm’: Permission denied
+	      find: ‘/run/screen/S-bandit1’: Permission denied
+	      find: ‘/run/screen/S-bandit10’: Permission denied
+	      find: ‘/run/screen/S-bandit25’: Permission denied
+	      find: ‘/run/screen/S-bandit30’: Permission denied
+	      find: ‘/run/screen/S-bandit9’: Permission denied
+	      find: ‘/run/screen/S-bandit28’: Permission denied
+	      find: ‘/run/screen/S-bandit18’: Permission denied
+	      find: ‘/run/screen/S-bandit20’: Permission denied
+	      find: ‘/run/screen/S-bandit12’: Permission denied
+	      find: ‘/run/screen/S-bandit5’: Permission denied
+	      find: ‘/run/screen/S-bandit7’: Permission denied
+	      find: ‘/run/screen/S-bandit16’: Permission denied
+	      find: ‘/run/screen/S-bandit26’: Permission denied
+	      find: ‘/run/screen/S-bandit8’: Permission denied
+	      find: ‘/run/screen/S-bandit15’: Permission denied
+	      find: ‘/run/screen/S-bandit4’: Permission denied
+	      find: ‘/run/screen/S-bandit3’: Permission denied
+	      find: ‘/run/screen/S-bandit19’: Permission denied
+	      find: ‘/run/screen/S-bandit31’: Permission denied
+	      find: ‘/run/screen/S-bandit17’: Permission denied
+	      find: ‘/run/screen/S-bandit2’: Permission denied
+	      find: ‘/run/screen/S-bandit22’: Permission denied
+	      find: ‘/run/screen/S-bandit21’: Permission denied
+	      find: ‘/run/screen/S-bandit14’: Permission denied
+	      find: ‘/run/screen/S-bandit13’: Permission denied
+	      find: ‘/run/screen/S-bandit24’: Permission denied
+	      find: ‘/run/screen/S-bandit23’: Permission denied
+	      find: ‘/run/shm’: Permission denied
+	      find: ‘/run/lock/lvm’: Permission denied
+	      find: ‘/var/spool/bandit24’: Permission denied
+	      find: ‘/var/spool/cron/crontabs’: Permission denied
+	      find: ‘/var/spool/rsyslog’: Permission denied
+	      find: ‘/var/tmp’: Permission denied
+	      find: ‘/var/lib/apt/lists/partial’: Permission denied
+	      find: ‘/var/lib/polkit-1’: Permission denied
+	      /var/lib/dpkg/info/bandit7.password # SPOILER ALERT
+	      find: ‘/var/log’: Permission denied
+	      find: ‘/var/cache/apt/archives/partial’: Permission denied
+	      find: ‘/var/cache/ldconfig’: Permission denied
+# //...
+	      ```
+	      To solve this we need to understand the three streams that bash uses to transfer data, more information on [this link](https://linuxhint.com/bash_stdin_stderr_stdout/)
+
+	      In this case, at unix level, 2 means error and we can redirect all this error to the black hole of linux `/dev/null/` to filter errors from our `find` command output and get the exact data we need:
+
+	      ```bash
+# With 2> we can select where to redirect the errors on the output
+# Permission denied is considered an error
+	      find / -type f -user bandit7 -group bandit6 -size 33c 2>/dev/null
+
+# And successfully we have just the file we need
+/var/lib/dpkg/info/bandit7.password
+```
+
+# Level 7
+The password for the next level is stored in the file data.txt next to the word millionth
 
 
