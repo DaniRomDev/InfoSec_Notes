@@ -1,4 +1,4 @@
-# Wargames - Bandit
+rgames - Bandit
 Write up for the levels of [bandit wargame](https://overthewire.org/wargames/bandit) follow along with [this youtube tutorial from s4vitar](https://www.youtube.com/watch?v=RUorAzaDftg) 
 # Level 1
 The password for the next level is stored in a file called **-** located in the home directory
@@ -394,4 +394,63 @@ IFukwKGsFW8MOq3IRFqrxE1hxTNEbUPR
 base64 -d data.txt | tr ' ' '\n' | tail -n 1 
 # IFukwKGsFW8MOq3IRFqrxE1hxTNEbUPR
 ```
+# Level 11
+The password for the next level is stored in the file data.txt, where all lowercase (a-z) and uppercase (A-Z) letters have been rotated by 13 positions.
+
+Basically reading the definition we can detect that the rotated positions are the same of [Caesar cipher](https://brilliant.org/wiki/caesar-cipher/)
+
+In this one is perfect to create **our first alias** that related to a specific command execution to translate a value encoded with caesar cipher.
+```bash
+# We can rotate characters with tr with the help of regex, so an 'A' is transformed into 'N' or an 'a' is transformed into 'n' also on lowercase
+cat data.txt | tr 'A-Za-z' 'N-ZA-Mn-za-m'
+# The password is 5Te8Y4drgCRfCx8ugdwuEX8KFC6k2EUu
+
+# We can create an alias to reuse this function
+# ROT13 is a simple letter substitution cipher that replaces a letter with the 13th letter after it in the alphabet. ROT13 is a special case of the Caesar cipher which was developed in ancient Rome
+alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
+
+# and we can execute again as 
+cat data.txt | rot13
+# The password is 5Te8Y4drgCRfCx8ugdwuEX8KFC6k2EUu
+```
+If you create the alias on the fly and close the terminal session, this one will disappear. To keep the alias on the system you need to add this alias in the bash configuration file you're currently using *(.bashrc, .zshrc ...)*
+```bash:.bashrc
+# .bashrc
+alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
+```
+# Level 12
+The password for the next level is stored in the file data.txt, which is a hexdump of a file that has been repeatedly compressed. For this level it may be useful to create a directory under /tmp in which you can work using mkdir. For example: mkdir /tmp/myname123. Then copy the datafile using cp, and rename it using mv (read the manpages!)
+
+Copy the file as the definition says:
+```bash
+# Replace <yourname> with the name you want
+mkdir /tmp/<yourname/ && cp ~/data.txt /tmp/<yourname>/data.txt && cd /tmp/<yourname>
+```
+Once we are on the temporal folder we can start playing with `xxd`, as the man pages definition says ->  *xxd - make a hexdump or do the reverse*
+```bash
+# So for example, transform into hexadecimal the next string
+echo "My fancy string" | xxd
+# You'll see the next output
+00000000: 4d79 2066 616e 6379 2073 7472 696e 670a  My fancy string.
+
+# To get only the hexadecimal part use -ps 
+echo "My fancy string" | xxd -ps
+# You'll see this 4d792066616e637920737472696e670a
+
+# If we want to revert the hex value use the -r flag
+echo "My fancy string" | xxd | xxd -r
+# You'll see again your original value "My fancy string"
+```
+Then go apply this command into our special data.txt file:
+```bash
+xxd -r data.txt
+# You'll see a weird characters in apparently random positions, let's create a new file with the hex reversed to inspect the file type
+xxd -r data.txt > data && file data
+# The output now is:
+data: gzip compressed data, was "data2.bin", last modified: Thu May  7 18:14:30 2020, max compression, from Unix
+```
+A good information appears but if we go back to the definition of this level remember this sentence `this is a hexdump of a file that has been repeatedly compressed`
+
+So I guess it has been compressed many times and it will take a long time to decompress it again and again manually *(even in several compression formats).*
+**Yeah! the perfect chance to create our first bash script**
 
