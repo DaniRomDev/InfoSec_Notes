@@ -110,24 +110,23 @@ find ./inhere/ -type f -name -file07 | xargs cat
 
 # Level 5
 The password for the next level is stored in a file somewhere under the inhere directory and has all of the following properties:
+- human-readable
+- 1033 bytes in size
+- not executable
 
-    human-readable
-        1033 bytes in size
-	    not executable
+Things get a little complicated here because if we list the directories and files on the path we're going to see a bunch of them so a manual approach is not feasible.
 
-	    Things get a little complicated here because if we list the directories and files on the path we're going to see a bunch of them so a manual approach is not feasible.
+At least we have critical information:
+- Human readable means that the type is ASCII text
+- We have the size of it (1033 bytes)
+- Is not executable so must not have the 'x' permission
 
-	    At least we have critical information:
-	    - Human readable means that the type is ASCII text
-	    - We have the size of it (1033 bytes)
-	    - Is not executable so must not have the 'x' permission
-
-	    Let's translate this conditions into a bash command:
-	    ```bash
+Let's translate this conditions into a bash command:
+```bash
 # ! Operator command is to check for the opposite
 # We are looking for type file, not executable and size of 1033 bytes (we need to append c at the end to define that we want it on bytes)
 
-	    find ./inhere/ -type f ! -executable -size 1033c
+find ./inhere/ -type f ! -executable -size 1033c
 
 # Output will be 
 ./inhere/maybehere07/.file2
@@ -135,6 +134,7 @@ The password for the next level is stored in a file somewhere under the inhere d
 # Try to open with
 find ./inhere/ -type f ! -executable -size 1033c | xargs cat
 ```
+
 If we try to open this file we encounter another problem, the content is full of spaces so we need to do some kind of transformation before pass the output to the cat command.
 
 The easy way is use xargs on the next pipe, this command by default will format the content so we can see now the password more readable:
@@ -250,4 +250,148 @@ The password for the next level is stored somewhere on the server and has all of
 # Level 7
 The password for the next level is stored in the file data.txt next to the word millionth
 
+This is not difficult at all but we can improve the way to get the password for the next bandit user, initially I guess you would try the next one:
+
+```bash
+cat data.txt | grep 'millionth'
+# You'll see the next text output
+millionth       cvX2JJa4CFALtqS87jk27qwqGhBM9pl
+
+# If we know which file and the pattern we're looking for we can simplify things using only grep
+grep 'millionth' data.txt
+```
+
+In order to improve our toolbelt let's show the `awk`command in action
+**From man page:**
+*mawk  is  an  interpreter  for  the  AWK  Programming  Language.   The AWK language is useful for manipulation of data files, text retrieval and processing, and for prototyping and experimenting with algorithms.  mawk is a new awk meaning it implements the  AWK language  as  defined in Aho, Kernighan and Weinberger, The AWK Programming Language, Addison-Wesley Publishing, 1988.*
+
+```bash
+# Awk is going to receive the arguments from the last command as $1, $2, $n..
+# We know that $1 is going to be millionth and $2 the password, by default awk dismiss whitespaces and are not treated as arguments
+grep 'millionth' data.txt | awk '{print $2}'
+
+# We can use fully awk for this action, NF{} is an special command of awk to get the last argument
+awk /millionth/ data.txt | awk 'NF{print $NF}
+```
+
+# Level 8
+The password for the next level is stored in the file data.txt and is the only line of text that occurs only once
+
+This level is perfect to sort unique text streams and get the data we really need, if you open the data.txt file you'll see a lot of lines:
+```bash
+cat data.txt 
+
+WBqr9xvf6mYTT5kLcTGCG6jb3ex94xWr
+iwE0KTeKQ8PWihqvjUnpu52YZeIO8Pqb
+qaWWAOOquC3yHnfJI4zvPWzCBdfHQ8wa
+0N65ZPpNGkUJePzFxctCRZRXVrCbUGfm
+cR6riSWC0ST7ALZ2i1e47r3gc0QxShGo
+TKUtQbeYnEzzYIne7BinoBx2bHFLBXzG
+8NtHZnWzCA8HswoJSCU7Ojg8nP3eKpsA
+SzwgS2ADSjP6ypOzp2bIvdqNyusRtrHj
+5AdqWjoJOEdx5tJmZVBMo0K2e4arD3ZW
+gqyF9CW3NNIiGW27AtWVNPqp3i1fxTMY
+flyKxCbHB8uLTaIB5LXqQNuJj3yj00eh
+w4zUWFGTUrAAh8lNkS8gH3WK2zowBEkA
+# //...
+```
+We can use the `wc`command that stands for 'word count' to see how many lines this file has:
+```bash
+# -l option is to print number of lines
+cat data.txt | wc -l
+# Output is 1001
+```
+and we can confirm it has a lot of lines so let's see how we can find our password inside this file.
+
+In bash we have available the `uniq` command that allow us to do some operations related with duplications
+```bash
+# This is not going to work and it's because we need to sort the content first to make the uniq command capable of checking for duplicate lines.
+# -u flag stands for 'only print unique lines'
+cat data.txt | uniq -u
+# // ... You'll see a lot of data again, let's sort first the content:
+cat data.txt | sort | uniq -u
+# Password printed
+```
+
+As we saw in the last level if we know which file is, we can run the command directly without needing to open it with cat:
+```bash
+sort data.txt | uniq -u
+```
+# Level 9
+The password for the next level is stored in the file data.txt in one of the few human-readable strings, preceded by several ‘=’ characters.
+
+There is just one command that is the key for this level and is `string`
+```bash
+#  strings - print the strings of printable characters in files
+string data.txt
+# Output of a bunch of printable characters
+S=A.H&^
+%hu&
+C}Jy
+0R@R_
+
+# // ...
+```
+There are many ways to get the password from this archive, let's try first with `grep` and `tail` using the '=' as the definition says:
+```bash
+strings data.txt | grep '='
+# Output of
+=zsGi
+Z)========== is
+A=|t&E
+Zdb=
+c^ LAh=3G
+*SF=s
+&========== truKLdjsbJ5g7yyJ2X2R0o3a5HQJFuLk # Seems that this is the one we're looking for
+S=A.H&
+
+# We can do a more accurate grep to retrieve the line we want:
+strings data.txt | grep '&='
+# Outputs the string containing the password 
+# &========== truKLdjsbJ5g7yyJ2X2R0o3a5HQJFuLk
+
+# An alternative with tail could be:
+strings data.txt | grep '==' # If we use twice the = character we can see that is the last line
+========== the*2i4
+========== password
+Z)========== is
+&========== truKLdjsbJ5g7yyJ2X2R0o3a5HQJFuLk
+
+# Then with tail 
+strings data.txt | grep '==' | tail -n 1 
+# &========== truKLdjsbJ5g7yyJ2X2R0o3a5HQJFuLk
+```
+We know what line it is and we have the password value on it but what happen if we need to retrieve only the password without this special characters before. Think this could be runned as an script and we need to get the exact value to continue working on it.
+
+The awk command in this case could work because we realize that they are separated by a space:
+```bash
+strings data.txt | grep '&=' | awk '{print $2}'
+# Output truKLdjsbJ5g7yyJ2X2R0o3a5HQJFuLk
+
+# Or if we know the line number, NR is another special command from awk to check the line number
+strings data. txt | grep '==' | awk 'NR==4' | | awk '{print $2}'
+```
+
+# Level 10
+The password for the next level is stored in the file data.txt, which contains base64 encoded data
+
+This one is very easy, the command `base64` can help us to obtain the password
+```bash
+# -d flag is to decode the value
+base64 -d data.txt
+# The password is IFukwKGsFW8MOq3IRFqrxE1hxTNEbUPR
+```
+With the skills learned on last levels, let's try to get the exact value from the string, in this case we can use `tr`:
+```bash
+# Translate the whitespaces into carrier returns
+base64 -d data.txt | tr ' ' '\n'
+The
+password
+is
+IFukwKGsFW8MOq3IRFqrxE1hxTNEbUPR
+
+# Knowing that the password is the last line we can apply another pipe using tail:
+base64 -d data.txt | tr ' ' '\n' | tail -n 1 
+# IFukwKGsFW8MOq3IRFqrxE1hxTNEbUPR
+```
 
