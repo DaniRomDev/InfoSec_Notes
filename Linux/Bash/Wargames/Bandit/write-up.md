@@ -1,4 +1,4 @@
-rgames - Bandit
+# Wargames - Bandit
 Write up for the levels of [bandit wargame](https://overthewire.org/wargames/bandit) follow along with [this youtube tutorial from s4vitar](https://www.youtube.com/watch?v=RUorAzaDftg) 
 # Level 1
 The password for the next level is stored in a file called **-** located in the home directory
@@ -414,7 +414,7 @@ cat data.txt | rot13
 # The password is 5Te8Y4drgCRfCx8ugdwuEX8KFC6k2EUu
 ```
 If you create the alias on the fly and close the terminal session, this one will disappear. To keep the alias on the system you need to add this alias in the bash configuration file you're currently using *(.bashrc, .zshrc ...)*
-```bash:.bashrc
+```bash
 # .bashrc
 alias rot13="tr 'A-Za-z' 'N-ZA-Mn-za-m'"
 ```
@@ -451,6 +451,66 @@ data: gzip compressed data, was "data2.bin", last modified: Thu May  7 18:14:30 
 ```
 A good information appears but if we go back to the definition of this level remember this sentence `this is a hexdump of a file that has been repeatedly compressed`
 
-So I guess it has been compressed many times and it will take a long time to decompress it again and again manually *(even in several compression formats).*
+So I guess it has been compressed many times and it will take a long time manually decompress it again and again *(even in several compression formats).*
+
 **Yeah! the perfect chance to create our first bash script**
+I know all the compression formats that appear because I have done it manually with the first ones *(gzip, bzip2 and tar)* so in every iteration from the first compressed file that we get from the hexdump with `xxd` we need to check the compression format of this file and save the uncompressed filename to use in the next loop step.
+
+**Note:** *Unfortunately the bandit server for this level doesn't have the `7z` library that is an universal compression tool that make this work more easy but in order to try resolve the levels inside the bandit server, let's continue creating our script.*
+
+```bash
+#!/bin/bash
+# A few functions to help us on the decompression process
+
+# With this one we can know file type in order to choose the decompression tool
+function get_type() {
+        echo $(file -b $1 | tr ' ' '\n' | head -n1)
+}
+
+# Get the filename of the uncompressed file when is .gz format
+function gzip_get_filename() {
+        echo $(gzip -l $1 | tr ' ' '\n' | tail -1)
+}
+
+# Get the filename of the uncompressed file when is .tar format
+function tar_get_filename() {
+        echo $(tar -tf $1)
+}
+
+last_file=data
+xxd -r ./data.txt > "$last_file"
+
+while true; do
+        # Clean up this generated files on each iteration to avoid collisions
+	    rm -f *.gz *.tar.gz *.bz
+
+	        type=$(get_type "$last_file")
+
+		    if [ "$type" == "ASCII" ]; then
+			        echo $(cat "$last_file" | tr ' ' '\n' | tail -1)
+				        exit 1
+					    elif [ "$type" == "gzip" ]; then
+					            mv -f "$last_file" data.gz
+						            last_file=$(gzip_get_filename data.gz)
+							            gzip -d data.gz
+								        elif [ "$type" == "bzip2" ]; then
+									    # With bzip2 we don't have a list option like gzip or tar but we know that the result file compressed is always the same without the .bz2 part.
+									            mv -f "$last_file" "$last_file.bz2" && bzip2 -d "$last_file.bz2"
+										        elif [ "$type" == "POSIX" ]; then
+											        mv -f "last_file" data.tar.gz
+												        last_file=$(tar_get_filename data.tar.gz)
+													        tar -xf data.tar.gz
+														    else
+															        echo "$last_file $type NOT FOUND, ABORTING..."
+																    exit 1
+																        fi
+																	done
+																	```
+
+																	Give execution permissions for your user in this new script `chmod u+x ./decompress.sh` and run it with `./decompress.sh`. If all went well, you should see the password on the console output.
+
+# Level 13
+
+
+
 
