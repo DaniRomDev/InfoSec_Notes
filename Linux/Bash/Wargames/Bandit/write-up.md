@@ -510,7 +510,57 @@ while true; do
 																	Give execution permissions for your user in this new script `chmod u+x ./decompress.sh` and run it with `./decompress.sh`. If all went well, you should see the password on the console output.
 
 # Level 13
+The password for the next level is stored in `/etc/bandit_pass/bandit14` and can only be read by user bandit14. For this level, you don’t get the next password, but you get a private SSH key that can be used to log into the next level. Note: localhost is a hostname that refers to the machine you are working on
 
+This level is not complicated as the other ones, if you list the files after connect via ssh with bandit13 you can see a private key of type **PEM RSA private key**. Using `ssh`command we can make a connection from this machine very easy to bandit14
 
+```bash
+# Don't use the -p flag to define the port, is not needed in connection.
+ssh -i ./sshkey.private bandit14@localhost
 
+# Once inside the machine we have the path from definition of level 13 to get the password
+cat /etc/bandit_pass/bandit14
+```
+
+# Level 14
+The password for the next level can be retrieved by submitting the password of the current level to port 30000 on localhost.
+
+The password is the one we obtained in the previous process on `/etc/bandit_pass/bandit14`. First of all we need to check if the port is really opened with a simple echo:
+```bash
+echo ' ' > /dev/tcp/127.0.0.1/30000
+# If nothing happens, it's because it's open, you can know if it's true using this helper in console that gives the status bit of the last executed command
+echo $? # 0
+
+# Or you can simplify things using && that only run the next expression if the output was 0
+echo ' ' > /dev/tcp/127.0.0.1/30000 && echo "Port 30000 is open"
+```
+Once we confirm the port is open, `netcat` comes to the rescue to make a connection on port 30000, a simplified way to give the password is using pipes a`fter open the file with the password content:
+
+```bash
+cat /etc/bandit_pass/bandit14 | nc localhost 30000
+# Correct!
+BfMYroe26WYalil77FoDi9qh59eK5xN
+```
+`telnet`is another way to make a connection on the port, this time you need to copy the password when prompt is ready:
+```bash
+telnet localhost 30000
+# Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'
+```
+# Level 15
+The password for the next level can be retrieved by submitting the password of the current level to port 30001 on localhost using SSL encryption.
+
+The modus operandi is similar as we did in level 14 but this time if you try to connect via `netcat`or `telnet` using the actual password, the connection is closed because is expecting an SSL encryption on the transport layer.
+
+This time `openssl` makes it's appearance, reading the man pages we can found an interesting option that's useful on this wargame:
+
+**s_client:** *This implements a generic SSL/TLS client which can establish a transparent connection to a remote server speakingSSL/TLS. It's intended for testing purposes only and provides only rudimentary interface functionality but internally uses mostly all functionality of the OpenSSL ssl library*
+
+So with this new information we can establish this connection on the remote server:
+```bash
+openssl s_client -connect 127.0.0.1:30001
+# A bunch of data appears in the screen, just paste the password and enjoy your flag
+```
+# Level 16
 
