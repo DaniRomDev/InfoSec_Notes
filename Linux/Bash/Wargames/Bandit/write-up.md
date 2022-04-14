@@ -563,4 +563,158 @@ openssl s_client -connect 127.0.0.1:30001
 # A bunch of data appears in the screen, just paste the password and enjoy your flag
 ```
 # Level 16
+The credentials for the next level can be retrieved by submitting the password of the current level to a port on localhost in the range 31000 to 32000. First find out which of these ports have a server listening on them. Then find out which of those speak SSL and which don’t. There is only 1 server that will give the next credentials, the others will simply send back to you whatever you send to it.
 
+Scanning ports is the key here, fortunately we have available the nmap tool on this serve so se can take advantage of it for our purpose on getting the password for the next level.
+
+We're not get into detail on nmap tool in this level but you'll see that is a powerful network tool
+```bash
+# This means, find open ports with insane option -T paranoid|sneaky|polite|normal|aggressive|insane
+# Using the port range 31000 ~ 32000 on localhost
+ nmap --open -T5 -v -n -p31000-32000 127.0.0.1
+ 
+ # This must give you the open ports in this range like this:
+ Starting Nmap 7.40 ( https://nmap.org ) at 2022-04-14 10:59 CEST
+Initiating Ping Scan at 10:59
+Scanning 127.0.0.1 [2 ports]
+Completed Ping Scan at 10:59, 0.00s elapsed (1 total hosts)
+Initiating Connect Scan at 10:59
+Scanning 127.0.0.1 [1001 ports]
+Discovered open port 31046/tcp on 127.0.0.1
+Discovered open port 31518/tcp on 127.0.0.1
+Discovered open port 31691/tcp on 127.0.0.1
+Discovered open port 31790/tcp on 127.0.0.1
+Discovered open port 31960/tcp on 127.0.0.1
+Completed Connect Scan at 10:59, 0.04s elapsed (1001 total ports)
+Nmap scan report for 127.0.0.1
+Host is up (0.00026s latency).
+Not shown: 996 closed ports
+Some closed ports may be reported as filtered due to --defeat-rst-ratelimit
+PORT      STATE SERVICE
+31046/tcp open  unknown
+31518/tcp open  unknown
+31691/tcp open  unknown
+31790/tcp open  unknown
+31960/tcp open  unknown
+
+Read data files from: /usr/bin/../share/nmap
+Nmap done: 1 IP address (1 host up) scanned in 0.09 second
+```
+As we see here we have 5 ports opened on this range, now is just trying manually which one speak SSL. Create an script for this level is not worth it because there are only few ports to try in.
+```bash
+# Using the openssl command as we did in the last level we could know which one speak SSL
+openssl s_client -connect 127.0.0.1:<PORT_YOU_WANT_TRY>
+```
+Once you detect the SSL port just paste the actual level password and you'll receive a ssh private key
+```bash
+# Create a new temporary directory to create the private key and make the connection into the another machine
+mktemp -d # You should see the new directory in the format: /tmp/tmp.4929B112
+cd /tmp/tmp.4929B112 && touch private_key && chmod 600 private_key # Only gives permissions for your user.
+
+# Open the file with your favorite editor (vim, nano, //...) and paste the SSH key you retrieved from the SSL port
+ssh -i private_key bandit17@localhost
+```
+Done!
+# Level 17
+There are 2 files in the homedirectory: passwords.old and passwords.new. The password for the next level is in passwords.new and is the only line that has been changed between passwords.old and passwords.new
+
+NOTE: if you have solved this level and see ‘Byebye!’ when trying to log into bandit18, this is related to the next level, bandit19
+
+First of all let's get the password for this level to not use the ssh key if we want to connect on bandit16 again. ***Notice that you can access to the current level password always on this folder.***
+```bash
+cat /etc/bandit_pass/bandit17
+```
+
+In this one we need to get the only line that is one file but not in the other one (a diff basically). We're going to use the `diff` command to get the line difference:
+```bash
+diff passwords.old passwords.new
+# 42c42
+< w0Yfolrc5bwjS4qw5mq1nnQi6mF03bii
+---
+> kfBf3eYk5BPBRzwjqutbbfE887SVc5Yd # Password here
+```
+# Level 18
+The password for the next level is stored in a file readme in the homedirectory. Unfortunately, someone has modified .bashrc to log you out when you log in with SSH.
+
+If you remember the clue 'Byebye!' from the last level is because if you try to connect via ssh into this level you will be logout after trying to connect. This happens because when you connect into the server via ssh the .bashrc is loaded first so inside this file there is few lines to logout after connect via ssh.
+
+We can take advantage on the delay of ssh connection to execute commands before load the .bashrc like this:
+```bash
+ssh -p 2220 bandit18@bandit.labs.overthewire.org cat .bashrc 
+# Should display the content of .bashrc and then logout
+# //..
+# if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
+echo 'Byebye !'
+exit 0
+```
+
+So knowing this behavior we can spam a bash instead of running 'cat .bashrc':
+```bash
+ssh -p 2220 bandit18@bandit.labs.overthewire.org bash
+# Minimal bash spawned so we're able now to read the content of readme file to get the password for the next level
+cat readme
+```
+# Level 19
+To gain access to the next level, you should use the setuid binary in the homedirectory. Execute it without arguments to find out how to use it. The password for this level can be found in the usual place (/etc/bandit_pass), after you have used the setuid binary.
+
+If we read the description carefully, we realise that it is simply a matter of following the steps to obtain the new password, so you'll find this binary called `bandit20-do`, let's execute the binary to see how we can use it
+
+```bash
+./bandit20-do
+# Run a command as another user.
+  Example: ./bandit20-do id
+  
+# So if I can run command as bandit20 user we can read the password on the folder
+./bandit20-do cat /etc/bandit_pass/bandit20
+```
+# Level 20
+There is a setuid binary in the homedirectory that does the following: it makes a connection to localhost on the port you specify as a commandline argument. It then reads a line of text from the connection and compares it to the password in the previous level (bandit20). If the password is correct, it will transmit the password for the next level (bandit21).
+
+NOTE: Try connecting to your own network daemon to see if it works as you think
+
+Things are getting more complicated from this level, so it can be confusing this one but is just connect to a whatever free port on the machine and then connect to it via the setuid binary defined in the level:
+
+To pass this level you'll need to connect via ssh into bandit20 in two separate terminal sessions because in the first one we're going to use the setuid binary to connect into the port we opened in the other session using `netcat`. Make sure the use netcat before run the suconnect binary
+```bash
+#1 Session
+./suconnect 5001 
+
+#2 Session
+nc -nlvp 5001 # You can set here the whatever port you want, just make sure that is free (don't use the popular ones like 80, 443, 22 ...)
+# listening on [any] 5001 ...
+connect to [127.0.0.1] from (UNKNOWN) [127.0.0.1] 47642
+```
+Now you can send the current level password on #2 Session and you'll receive the next password in the #1 session
+
+# Level 21
+A program is running automatically at regular intervals from cron, the time-based job scheduler. Look in /etc/cron.d/ for the configuration and see what command is being executed.
+
+It is most easy that you think on this one, if you list the files inside `/etc/cron.d` you'll see a few bandit files:
+```bash
+ls /etc/cron.d
+# cronjob_bandit15_root  cronjob_bandit17_root  cronjob_bandit22  cronjob_bandit23  cronjob_bandit24  cronjob_bandit25_root
+```
+The next level is 22 so let's try to read the `cronjob_bandit22` file and see the content:
+```bash
+cat /etc/cron.d/cronjob_bandit22
+# @reboot bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+* * * * * bandit22 /usr/bin/cronjob_bandit22.sh &> /dev/null
+```
+This execute a script in regular intervals so seems juicy, I guess in the content would be the password for the next level:
+```bash
+cat /usr/bin/cronjob_bandit22.sh
+# #!/bin/bash
+# chmod 644 /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+# cat /etc/bandit_pass/bandit22 > /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+
+# Fortunately this script is dumping the password into a file in the temporary directory where we have read permissions so let's pick up the password:
+cat /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
+```
+
+# Level 22
