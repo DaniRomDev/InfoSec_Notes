@@ -563,4 +563,59 @@ openssl s_client -connect 127.0.0.1:30001
 # A bunch of data appears in the screen, just paste the password and enjoy your flag
 ```
 # Level 16
+The credentials for the next level can be retrieved by submitting the password of the current level to a port on localhost in the range 31000 to 32000. First find out which of these ports have a server listening on them. Then find out which of those speak SSL and which don’t. There is only 1 server that will give the next credentials, the others will simply send back to you whatever you send to it.
+
+Scanning ports is the key here, fortunately we have available the nmap tool on this serve so se can take advantage of it for our purpose on getting the password for the next level.
+
+We're not get into detail on nmap tool in this level but you'll see that is a powerful network tool
+```bash
+# This means, find open ports with insane option -T paranoid|sneaky|polite|normal|aggressive|insane
+# Using the port range 31000 ~ 32000 on localhost
+ nmap --open -T5 -v -n -p31000-32000 127.0.0.1
+ 
+ # This must give you the open ports in this range like this:
+ Starting Nmap 7.40 ( https://nmap.org ) at 2022-04-14 10:59 CEST
+Initiating Ping Scan at 10:59
+Scanning 127.0.0.1 [2 ports]
+Completed Ping Scan at 10:59, 0.00s elapsed (1 total hosts)
+Initiating Connect Scan at 10:59
+Scanning 127.0.0.1 [1001 ports]
+Discovered open port 31046/tcp on 127.0.0.1
+Discovered open port 31518/tcp on 127.0.0.1
+Discovered open port 31691/tcp on 127.0.0.1
+Discovered open port 31790/tcp on 127.0.0.1
+Discovered open port 31960/tcp on 127.0.0.1
+Completed Connect Scan at 10:59, 0.04s elapsed (1001 total ports)
+Nmap scan report for 127.0.0.1
+Host is up (0.00026s latency).
+Not shown: 996 closed ports
+Some closed ports may be reported as filtered due to --defeat-rst-ratelimit
+PORT      STATE SERVICE
+31046/tcp open  unknown
+31518/tcp open  unknown
+31691/tcp open  unknown
+31790/tcp open  unknown
+31960/tcp open  unknown
+
+Read data files from: /usr/bin/../share/nmap
+Nmap done: 1 IP address (1 host up) scanned in 0.09 second
+```
+As we see here we have 5 ports opened on this range, now is just trying manually which one speak SSL. Create an script for this level is not worth it because there are only few ports to try in.
+```bash
+# Using the openssl command as we did in the last level we could know which one speak SSL
+openssl s_client -connect 127.0.0.1:<PORT_YOU_WANT_TRY>
+```
+Once you detect the SSL port just paste the actual level password and you'll receive a ssh private key
+```bash
+# Create a new temporary directory to create the private key and make the connection into the another machine
+mktemp -d # You should see the new directory in the format: /tmp/tmp.4929B112
+cd /tmp/tmp.4929B112 && touch private_key && chmod 600 private_key # Only gives permissions for your user.
+
+# Open the file with your favorite editor (vim, nano, //...) and paste the SSH key you retrieved from the SSL port
+ssh -i private_key bandit17@localhost
+```
+Done!
+# Level 17
+
+
 
