@@ -1,0 +1,15 @@
+#!/usr/bin/expect -f
+
+log_user 0
+set timeout 30
+
+set user [lindex $argv 0]
+set password [lindex $argv 1]
+set payload [lindex $argv 2]
+
+spawn bash -c "ssh -p 2220 $user@bandit.labs.overthewire.org bash -s < $payload >> bandit_flags.txt" 
+
+expect "assword:"
+send "$password\r"
+interact
+
